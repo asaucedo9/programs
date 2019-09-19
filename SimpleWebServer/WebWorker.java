@@ -170,7 +170,7 @@ private void writeContent(OutputStream os, String tempURL) throws Exception
          else{
 
             // Error page
-            String error = "error404.html";
+            String error = "error.htm";
 
             byte[] encodedFile = Files.readAllBytes(Paths.get(error));
             String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
