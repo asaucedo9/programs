@@ -27,6 +27,11 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.util.TimeZone;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+
 public class WebWorker implements Runnable
 {
 
@@ -141,13 +146,13 @@ private void writeContent(OutputStream os, String tempURL) throws Exception
    tempURL = tempURL.replace("/", "\\"); 
       File file = new File(tempURL);
 
-      //SimpleDateFormat dateFormat = new SimpleDateFormat("mm/dd/yyyy");
+      SimpleDateFormat dateFormat = new SimpleDateFormat("mm/dd/yyyy");
       Date date = new Date();
 
       if(!tempURL.contains("favicon.cio")){
 
          if(file.isFile()){
-            byte[] encodedFile = file.readAllBytes(Paths.get(tempURL));
+           byte[] encodedFile = Files.readAllBytes(Paths.get(tempURL));
             
             String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
 
