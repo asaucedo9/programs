@@ -31,6 +31,7 @@ public class WebWorker implements Runnable
 {
 
 private Socket socket;
+private String URL = "";
 
 /**
 * Constructor: must have a valid open socket
@@ -38,6 +39,7 @@ private Socket socket;
 public WebWorker(Socket s)
 {
    socket = s;
+   
 }
 
 /**
@@ -54,7 +56,7 @@ public void run()
       OutputStream os = socket.getOutputStream();
       readHTTPRequest(is);
       writeHTTPHeader(os,"text/html");
-      writeContent(os);
+      writeContent(os, URL);// to write content of URL
       os.flush();
       socket.close();
    } catch (Exception e) {
@@ -77,7 +79,11 @@ private void readHTTPRequest(InputStream is)
          line = r.readLine();
          System.err.println("Request line: ("+line+")");
          if (line.length()==0) break;
-      } catch (Exception e) {
+         //to see if it is a GET request
+         if (line.substring(0,3).equals("GET")){ 
+             URL = line.substring(5).split(" ")[0];
+         } 
+      }catch (Exception e) {
          System.err.println("Request error: "+e);
          break;
       }
@@ -92,15 +98,31 @@ private void readHTTPRequest(InputStream is)
 **/
 private void writeHTTPHeader(OutputStream os, String contentType) throws Exception
 {
+   //create a string for URL and replaces it
+   String temp = URL;
+   temp = temp.replace("/", "\\");
+   
+   //to see if URL is a file
+   File f = new File(temp);
+   
    Date d = new Date();
    DateFormat df = DateFormat.getDateTimeInstance();
    df.setTimeZone(TimeZone.getTimeZone("GMT"));
-   os.write("HTTP/1.1 200 OK\n".getBytes());
+   
+   //to see if file is really file
+   if(f.isFile()){
+      //if it is get this message
+      os.write("HTTP/1.1 200 OK\n".getBytes());
+   }else{
+      //if not it will get this message
+      os.write("HTTP/1.1 404 Not Found\n".getBytes());
+   }
+   
    os.write("Date: ".getBytes());
    os.write((df.format(d)).getBytes());
    os.write("\n".getBytes());
-   os.write("Server: Jon's very own server\n".getBytes());
-   //os.write("Last-Modified: Wed, 08 Jan 2003 23:11:55 GMT\n".getBytes());
+   os.write("Server: Aaron's very own server\n".getBytes());
+   os.write("Last-Modified: Wed, 18 September 23:11:55 GMT\n".getBytes());
    //os.write("Content-Length: 438\n".getBytes()); 
    os.write("Connection: close\n".getBytes());
    os.write("Content-Type: ".getBytes());
@@ -114,11 +136,44 @@ private void writeHTTPHeader(OutputStream os, String contentType) throws Excepti
 * be done after the HTTP header has been written out.
 * @param os is the OutputStream object to write to
 **/
-private void writeContent(OutputStream os) throws Exception
+private void writeContent(OutputStream os, String tempURL) throws Exception
 {
-   os.write("<html><head></head><body>\n".getBytes());
-   os.write("<h3>My web server works!</h3>\n".getBytes());
-   os.write("</body></html>\n".getBytes());
-}
+   tempURL = tempURL.replace("/", "\\"); 
+      File file = new File(tempURL);
+
+      //SimpleDateFormat dateFormat = new SimpleDateFormat("mm/dd/yyyy");
+      Date date = new Date();
+
+      if(!tempURL.contains("favicon.cio")){
+
+         if(file.isFile()){
+            byte[] encodedFile = file.readAllBytes(Paths.get(tempURL));
+            
+            String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
+
+            //date tag
+            String dateTag = dateFormat.format(date);
+            fileContents = fileContents.replace("<cs371date>", dateTag);
+
+            //server tag
+            String serverTag = "Aaron's Server";
+            fileContents = fileContents.replace("<cs371server", serverTag);
+
+            os.write(fileContents.getBytes());
+
+         }
+         else{
+
+            // Error page
+            String error = "error404.html";
+
+            byte[] encodedFile = Files.readAllBytes(Paths.get(error));
+            String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
+
+            os.write("<center> Error, check URL </center>".getBytes());
+            os.write(fileContents.getBytes());
+         }
+      }
+   } // end writeContent
 
 } // end class
