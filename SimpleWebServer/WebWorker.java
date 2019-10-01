@@ -1,24 +1,3 @@
-/**
-* Web worker: an object of this class executes in its own new thread
-* to receive and respond to a single HTTP request. After the constructor
-* the object executes on its "run" method, and leaves when it is done.
-*
-* One WebWorker object is only responsible for one client connection. 
-* This code uses Java threads to parallelize the handling of clients:
-* each WebWorker runs in its own thread. This means that you can essentially
-* just think about what is happening on one client at a time, ignoring 
-* the fact that the entirety of the webserver execution might be handling
-* other clients, too. 
-*
-* This WebWorker class (i.e., an object of this class) is where all the
-* client interaction is done. The "run()" method is the beginning -- think
-* of it as the "main()" for a client interaction. It does three things in
-* a row, invoking three methods in this class: it reads the incoming HTTP
-* request; it writes out an HTTP header to begin its response, and then it
-* writes out some HTML content for the response content. HTTP requests and
-* responses are just lines of text (in a very particular format). 
-*
-**/
 
 import java.net.Socket;
 import java.lang.Runnable;
@@ -27,16 +6,21 @@ import java.util.Date;
 import java.text.DateFormat;
 import java.util.TimeZone;
 
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import javax.imageio.ImageIO;
 
 public class WebWorker implements Runnable
 {
 
 private Socket socket;
 private String URL = "";
+private String mimeType = "";
+
 
 /**
 * Constructor: must have a valid open socket
@@ -44,8 +28,10 @@ private String URL = "";
 public WebWorker(Socket s)
 {
    socket = s;
-   
+
 }
+
+
 
 /**
 * Worker thread starting point. Each worker handles just one HTTP 
@@ -60,7 +46,7 @@ public void run()
       InputStream  is = socket.getInputStream();
       OutputStream os = socket.getOutputStream();
       readHTTPRequest(is);
-      writeHTTPHeader(os,"text/html");
+      writeHTTPHeader(os,mimeType);
       writeContent(os, URL);// to write content of URL
       os.flush();
       socket.close();
@@ -77,12 +63,14 @@ public void run()
 private void readHTTPRequest(InputStream is)
 {
    String line;
+  // String 
    BufferedReader r = new BufferedReader(new InputStreamReader(is));
    while (true) {
       try {
          while (!r.ready()) Thread.sleep(1);
          line = r.readLine();
-         System.err.println("Request line: ("+line+")");
+         
+       System.err.println("Request line: ("+line+")");
          if (line.length()==0) break;
          //to see if it is a GET request
          if (line.substring(0,3).equals("GET")){ 
@@ -96,6 +84,9 @@ private void readHTTPRequest(InputStream is)
    return;
 }
 
+
+
+
 /**
 * Write the HTTP header lines to the client network connection.
 * @param os is the OutputStream object to write to
@@ -105,15 +96,17 @@ private void writeHTTPHeader(OutputStream os, String contentType) throws Excepti
 {
    //create a string for URL and replaces it
    String temp = URL;
-   temp = temp.replace("/", "\\");
+   temp = temp.replace("\\", "/");
    
    //to see if URL is a file
    File f = new File(temp);
-   
    Date d = new Date();
+   //try{
    DateFormat df = DateFormat.getDateTimeInstance();
    df.setTimeZone(TimeZone.getTimeZone("GMT"));
-   
+   os.write(mimeType.getBytes());
+   os.write("test".getBytes());
+   try{
    //to see if file is really file
    if(f.isFile()){
       //if it is get this message
@@ -123,6 +116,29 @@ private void writeHTTPHeader(OutputStream os, String contentType) throws Excepti
       os.write("HTTP/1.1 404 Not Found\n".getBytes());
    }
    
+   //look at file
+   InputStream type = new FileInputStream(f);
+      //htm
+      if(temp.endsWith("htm"))
+         mimeType = "text/html";
+      //html   
+      if(temp.endsWith("html"))
+         mimeType = "text/html";
+      //for gif
+      if(temp.endsWith("gif"))
+         mimeType = "image/gif";
+      //for png
+      if(temp.endsWith("png"))
+         mimeType = "image/png";
+      //for jpeg
+      if(temp.endsWith("jpeg"))
+         mimeType = "image/jpeg";
+       //save contentType in global variable mimeType  
+       contentType = mimeType;
+       
+       
+    //test to see content type     
+   System.out.print("HTTP/1.0 200 OK\n"+"Content-type: "+contentType+"\n");    
    os.write("Date: ".getBytes());
    os.write((df.format(d)).getBytes());
    os.write("\n".getBytes());
@@ -133,9 +149,18 @@ private void writeHTTPHeader(OutputStream os, String contentType) throws Excepti
    os.write("Content-Type: ".getBytes());
    os.write(contentType.getBytes());
    os.write("\n\n".getBytes()); // HTTP header ends with 2 newlines
-   return;
+   }
+   catch (FileNotFoundException x) {
+        System.out.print("HTTP/1.0 404 Not Found\r\n"+
+          "Content-type: text/html\r\n\r\n"+
+          "<html><head></head><body>"+f+" not found</body></html>\n");
+        os.close();
+      }
+    
+    catch (IOException x) {
+      System.out.println(x);
+     }
 }
-
 /**
 * Write the data content to the client network connection. This MUST
 * be done after the HTTP header has been written out.
@@ -143,18 +168,20 @@ private void writeHTTPHeader(OutputStream os, String contentType) throws Excepti
 **/
 private void writeContent(OutputStream os, String tempURL) throws Exception
 {
-   tempURL = tempURL.replace("/", "\\"); 
+      tempURL = tempURL.replace("/", "\\"); 
+      //use to check if tempURL is a file
       File file = new File(tempURL);
-
+      //get file path from file systems and use trim to eliminates leading and trailing spaces
+      Path url = FileSystems.getDefault().getPath(tempURL.trim());
+      
       SimpleDateFormat dateFormat = new SimpleDateFormat("mm/dd/yyyy");
       Date date = new Date();
-
-      if(!tempURL.contains("favicon.cio")){
+      
+     
 
          if(file.isFile()){
-           byte[] encodedFile = Files.readAllBytes(Paths.get(tempURL));
-            
-            String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
+            byte[] b = Files.readAllBytes(url);
+            String fileContents = new String(b, StandardCharsets.UTF_8);
 
             //date tag
             String dateTag = dateFormat.format(date);
@@ -163,22 +190,25 @@ private void writeContent(OutputStream os, String tempURL) throws Exception
             //server tag
             String serverTag = "Aaron's Server";
             fileContents = fileContents.replace("<cs371server", serverTag);
-
-            os.write(fileContents.getBytes());
-
+            //to serve the files
+            os.write(b);
+            //to serve the tags
+            //os.write(fileContents.getBytes());
+          
          }
          else{
 
             // Error page
+         ;
             String error = "error.htm";
 
-            byte[] encodedFile = Files.readAllBytes(Paths.get(error));
-            String fileContents = new String(encodedFile, StandardCharsets.UTF_8);
+            byte[] e = Files.readAllBytes(Paths.get(error));
+            String fileContents = new String(e, StandardCharsets.UTF_8);
 
             os.write("<center> Error, check URL </center>".getBytes());
             os.write(fileContents.getBytes());
          }
-      }
-   } // end writeContent
-
+     
+   }//end writeContent
 } // end class
+

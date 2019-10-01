@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<link rel = "shortcut icon"
+	 href = "/img/myicon.ico" />
+</head>
+
+</html>

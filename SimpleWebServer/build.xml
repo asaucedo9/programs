@@ -1,0 +1,11 @@
+<project name="test" basedir=".">
+
+<target name="compile">
+       <javac srcdir="." includeantruntime="true" includes="WebServer.java" destdir="."></javac>
+</target>
+
+<target name="run" depends="compile">
+       <java classname="WebServer" fork="true"></java>
+</target>
+
+</project>
