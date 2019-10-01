@@ -1,0 +1,10 @@
+1.I estimate this assignment will take about 2 hours.
+
+2.Thought/Design: 30 min
+  Programming: 1 hour
+  Debugging: 30 min
+  TOTAL 2 hours
+
+3. My accuracy was 30%
+
+
