@@ -1,0 +1,59 @@
+Aaron Saucedo
+12/8/19
+CS371
+P4
+
+Circle.java:
+
+-Scale function added factor rather than multiplied: found by simpleScaleDown()
+
+Original: 
+	radius = radius + factor
+Fix: 
+	radius = radius * factor;
+
+-moveBy added xOffset instead of yOffset:
+
+Original: center.y = center.y + xOffset;
+Fix: Original: center.y = center.y + yOffset;
+
+
+Circle1.java
+
+-Error with a circle inside another circle:found by testInnerCircle()
+
+Original: 
+
+   if (Math.abs(center.x - other.center.x) < radius &&
+       Math.abs(center.y - other.center.y) < radius)
+
+
+Fix:
+
+   if (Math.abs(center.x - other.center.x) < radius &&
+       Math.abs(center.y - other.center.y) < radius && radius <= other.radius)
+     
+
+
+Circle2.java:
+
+-incorrect parameter values: Error found by simpleMove() and simpleMoveNeg()
+
+Original: 
+	super(y,x,radius);
+Fix: 
+	super(x,y,radius);
+
+-Error with a circle inside another circle:found by testInnerCircle()
+
+Original: 
+
+   if (d < radius)
+      
+Fix: 
+   if (d < radius && radius <= other.radius)
+      return true;
+   else
+      return false;
+
+
